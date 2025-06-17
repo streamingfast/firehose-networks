@@ -90,4 +90,4 @@ When adding new networks or helpers:
 
 ## License
 
-This project follows the same licensing as the upstream Networks Registry project.
+This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LICENSE.md) file for details.
