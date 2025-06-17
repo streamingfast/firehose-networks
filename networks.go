@@ -17,20 +17,12 @@ import (
 //go:embed fallback_TheGraphNetworkRegistry_0.6.68.json
 var embeddedRegistryJSON []byte
 
-// Package networks provides access to The Graph's network registry and helpers.
-
 // NetworkRegistry is a thin wrapper around a [map[string]*registry.Network] to add some helper methods.
 type NetworkRegistry map[string]*registry.Network
 
 var (
 	registryNetworks     NetworkRegistry
 	registryNetworksOnce sync.Once
-)
-
-var (
-	networkOverrides = []*registry.Network{
-		TRONMainnet,
-	}
 )
 
 // getRegistryNetworks fetches and caches all networks from the registry (no filtering).
@@ -184,7 +176,13 @@ func backgroundUpdateLatestRegistry(ctx context.Context) {
 // ScheduleUpdateLatestRegistry schedules a background update goroutine of the latest registry at the
 // specified interval. It runs in a goroutine and updates the global registryNetworks variable. You
 // can control it with a context to stop the updates gracefully.
+//
+// If you don't want any logging, pass nil as the logger parameter.
 func ScheduleUpdateLatestRegistry(ctx context.Context, interval time.Duration, logger *zap.Logger) {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()

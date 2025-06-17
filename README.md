@@ -141,11 +141,42 @@ fmt.Printf("Bytes encoding: %v\n", encoding)
 
 This is particularly useful for Firehose applications that need to know how to encode/decode blockchain data for a specific network.
 
+### ScheduleUpdateLatestRegistry(ctx context.Context, interval time.Duration, logger *zap.Logger)
+
+Schedules a background goroutine that periodically updates the registry from the latest remote version at the specified interval. This ensures your application stays up-to-date with the latest network configurations.
+
+```go
+import (
+    "context"
+    "time"
+    "go.uber.org/zap"
+)
+
+// You are expected to provide ctx and logger
+ctx := context.Background()
+logger := zap.NewNop()
+
+// Update registry every 30 minutes
+networks.ScheduleUpdateLatestRegistry(ctx, 30*time.Minute, logger)
+```
+
+Key features:
+- **Non-blocking**: Runs in a background goroutine
+- **Graceful shutdown**: Respects context cancellation for clean shutdowns
+- **Error handling**: Logs errors and continues on failed updates
+- **Global update**: Updates the global registry used by all other functions
+
+This is useful for long-running applications that need to stay synchronized with the latest network configurations without manual intervention.
+
 </details>
 
 ## Custom Networks
 
-If you need to add a custom network, you can look at [networks]
+The library supports adding custom network configurations that aren't available in the upstream registry. This is useful for development networks, private chains, or networks not yet in the official registry.
+
+Custom networks are defined in [`overrides.go`](./overrides.go) and automatically merged with the official registry data. See the `TRONMainnet` example in that file for reference on how to structure a custom network definition.
+
+To add your own custom network, follow the same pattern used for the existing overrides.
 
 ## Fallback Registry
 

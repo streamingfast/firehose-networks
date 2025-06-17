@@ -3,6 +3,12 @@ package networks
 import registry "github.com/pinax-network/graph-networks-libs/packages/golang/lib"
 
 var (
+	networkOverrides = []*registry.Network{
+		TRONMainnet,
+	}
+)
+
+var (
 	TRONMainnet = &registry.Network{
 		ID:        "tron",
 		ShortName: "Tron",
