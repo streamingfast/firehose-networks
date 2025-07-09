@@ -22,7 +22,9 @@ This library serves as an enhanced interface to The Graph's Networks Registry, s
 ## Usage
 
 ```go
-import "github.com/streamingfast/firehose-networks"
+import (
+    networks "github.com/streamingfast/firehose-networks"
+)
 
 // Find a network by ID, alias, or name
 network := networks.Find("ethereum-mainnet")
