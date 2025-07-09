@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -60,7 +61,7 @@ func loadRegistry(loader func() (*registry.NetworksRegistry, error)) (NetworkReg
 	}
 
 	for _, net := range networkOverrides {
-		registry.addCustomNetwork(net)
+		registry.addCustomNetwork(net, false)
 	}
 
 	return registry, nil
@@ -95,10 +96,17 @@ func GetFirehoseRegistry() NetworkRegistry {
 }
 
 // addCustomNetwork can be used to add a custom network to the registry map for testing or development.
-func (r NetworkRegistry) addCustomNetwork(network *registry.Network) {
+func (r NetworkRegistry) addCustomNetwork(network *registry.Network, forced bool) {
 	if network == nil || network.ID == "" {
 		return // Ignore invalid input
 	}
+
+	_, found := r[network.ID]
+	if found && !forced {
+		// If the network already exists and not forced, we skip adding it.
+		return
+	}
+
 	r[network.ID] = network
 }
 
@@ -133,6 +141,44 @@ func (r NetworkRegistry) FindByGenesisBlock(blockNum uint64, blockID string) *re
 // Find is a shortcut for getRegistryNetworks().Find(key).
 func Find(key string) *registry.Network {
 	return getRegistryNetworks().Find(key)
+}
+
+// GetSubstreamsEndpoint returns the preferred Substreams endpoint for a given network key,
+// prioritizing streamingfast.io endpoints when available.
+func GetSubstreamsEndpoint(key string) string {
+	network := Find(key)
+	if network == nil || len(network.Services.Substreams) == 0 {
+		return ""
+	}
+
+	// First, look for streamingfast.io endpoints
+	for _, endpoint := range network.Services.Substreams {
+		if strings.Contains(endpoint, "streamingfast.io") {
+			return endpoint
+		}
+	}
+
+	// If no streamingfast.io endpoint found, return the first available endpoint
+	return network.Services.Substreams[0]
+}
+
+// GetFirehoseEndpoint returns the preferred Firehose endpoint for a given network key,
+// prioritizing streamingfast.io endpoints when available.
+func GetFirehoseEndpoint(key string) string {
+	network := Find(key)
+	if network == nil || len(network.Services.Firehose) == 0 {
+		return ""
+	}
+
+	// First, look for streamingfast.io endpoints
+	for _, endpoint := range network.Services.Firehose {
+		if strings.Contains(endpoint, "streamingfast.io") {
+			return endpoint
+		}
+	}
+
+	// If no streamingfast.io endpoint found, return the first available endpoint
+	return network.Services.Firehose[0]
 }
 
 // Returns the bytes encoding for a given network

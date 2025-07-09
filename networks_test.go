@@ -173,3 +173,109 @@ func TestFindBySubstreamsEndpoint(t *testing.T) {
 		assert.Nil(t, r.FindBySubstreamsEndpoint("any.endpoint:443"))
 	})
 }
+
+func TestGetSubstreamsEndpoint(t *testing.T) {
+	t.Run("prioritizes streamingfast.io endpoint", func(t *testing.T) {
+		endpoint := GetSubstreamsEndpoint("mainnet")
+		assert.NotEmpty(t, endpoint, "Should return an endpoint for mainnet")
+		assert.Contains(t, endpoint, "streamingfast.io", "Should prioritize streamingfast.io endpoint")
+		assert.Equal(t, "mainnet.eth.streamingfast.io:443", endpoint)
+	})
+
+	t.Run("returns first endpoint when no streamingfast.io endpoint", func(t *testing.T) {
+		// Create a test network with no streamingfast.io endpoint
+		net := &registry.Network{
+			ID: "test-no-sf",
+			Services: registry.Services{
+				Substreams: []string{
+					"test.pinax.network:443",
+					"test.other.network:443",
+				},
+			},
+		}
+		
+		// Temporarily add to registry
+		reg := getRegistryNetworks()
+		reg["test-no-sf"] = net
+		defer delete(reg, "test-no-sf")
+		
+		endpoint := GetSubstreamsEndpoint("test-no-sf")
+		assert.Equal(t, "test.pinax.network:443", endpoint)
+	})
+
+	t.Run("returns empty string for unknown network", func(t *testing.T) {
+		endpoint := GetSubstreamsEndpoint("unknown-network")
+		assert.Empty(t, endpoint)
+	})
+
+	t.Run("returns empty string for network with no substreams endpoints", func(t *testing.T) {
+		// Create a test network with no substreams endpoints
+		net := &registry.Network{
+			ID: "test-no-substreams",
+			Services: registry.Services{
+				Substreams: []string{},
+			},
+		}
+		
+		// Temporarily add to registry
+		reg := getRegistryNetworks()
+		reg["test-no-substreams"] = net
+		defer delete(reg, "test-no-substreams")
+		
+		endpoint := GetSubstreamsEndpoint("test-no-substreams")
+		assert.Empty(t, endpoint)
+	})
+}
+
+func TestGetFirehoseEndpoint(t *testing.T) {
+	t.Run("prioritizes streamingfast.io endpoint", func(t *testing.T) {
+		endpoint := GetFirehoseEndpoint("mainnet")
+		assert.NotEmpty(t, endpoint, "Should return an endpoint for mainnet")
+		assert.Contains(t, endpoint, "streamingfast.io", "Should prioritize streamingfast.io endpoint")
+		assert.Equal(t, "mainnet.eth.streamingfast.io:443", endpoint)
+	})
+
+	t.Run("returns first endpoint when no streamingfast.io endpoint", func(t *testing.T) {
+		// Create a test network with no streamingfast.io endpoint
+		net := &registry.Network{
+			ID: "test-no-sf",
+			Services: registry.Services{
+				Firehose: []string{
+					"test.pinax.network:443",
+					"test.other.network:443",
+				},
+			},
+		}
+		
+		// Temporarily add to registry
+		reg := getRegistryNetworks()
+		reg["test-no-sf"] = net
+		defer delete(reg, "test-no-sf")
+		
+		endpoint := GetFirehoseEndpoint("test-no-sf")
+		assert.Equal(t, "test.pinax.network:443", endpoint)
+	})
+
+	t.Run("returns empty string for unknown network", func(t *testing.T) {
+		endpoint := GetFirehoseEndpoint("unknown-network")
+		assert.Empty(t, endpoint)
+	})
+
+	t.Run("returns empty string for network with no firehose endpoints", func(t *testing.T) {
+		// Create a test network with no firehose endpoints
+		net := &registry.Network{
+			ID: "test-no-firehose",
+			Services: registry.Services{
+				Firehose: []string{},
+			},
+		}
+		
+		// Temporarily add to registry
+		reg := getRegistryNetworks()
+		reg["test-no-firehose"] = net
+		defer delete(reg, "test-no-firehose")
+		
+		endpoint := GetFirehoseEndpoint("test-no-firehose")
+		assert.Empty(t, endpoint)
+	})
+}
