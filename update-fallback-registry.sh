@@ -47,7 +47,7 @@ if [[ "$old_file" != "$new_file" ]]; then
   echo "Deleted old fallback file: $old_file"
 fi
 
-# Update go:embed line in chainconfig.go
-sed -i '' "s|^//go:embed fallback_TheGraphNetworkRegistry_.*\\.json$|//go:embed $new_file|" chainconfig.go
+# Update go:embed line in networks.go
+sed -i '' "s|^//go:embed fallback_TheGraphNetworkRegistry_.*\\.json$|//go:embed $new_file|" networks.go
 
-echo "Updated go:embed in chainconfig.go to $new_file" 
+echo "Updated go:embed in networks.go to $new_file"

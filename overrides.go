@@ -34,15 +34,15 @@ var (
 		IssuanceRewards: true,
 		NativeToken:     ptr("TRX"),
 		DocsURL:         ptr("https://developers.tron.network/"),
-		Genesis: &registry.Genesis{
-			Hash:   "0x00000000000000001ebf88508a03865c71d452e25f4d51194196a1d22b6653dc",
-			Height: 0,
-		},
 		Firehose: &registry.Firehose{
 			BlockType:        "sf.tron.type.v1.Block",
 			EvmExtendedModel: ptr(false),
 			BufURL:           "https://buf.build/streamingfast/firehose-tron",
 			BytesEncoding:    "hex",
+			FirstStreamableBlock: &registry.FirstStreamableBlock{
+				ID:     "0x00000000000000001ebf88508a03865c71d452e25f4d51194196a1d22b6653dc",
+				Height: 0,
+			},
 		},
 	}
 )

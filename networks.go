@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-//go:embed fallback_TheGraphNetworkRegistry_0.6.68.json
+//go:embed fallback_TheGraphNetworkRegistry_0.7.6.json
 var embeddedRegistryJSON []byte
 
 // NetworkRegistry is a thin wrapper around a [map[string]*registry.Network] to add some helper methods.
@@ -127,11 +127,18 @@ func (r NetworkRegistry) Find(key string) *registry.Network {
 }
 
 // FindByGenesisBlock returns the *registry.Network whose genesis block matches the given blockNum and blockID (hash).
+//
+// Deprecated: Use FindByFirstStreamableBlock instead, as GenesisBlock has been renamed to FirstStreamableBlock in the network registry.
 func (r NetworkRegistry) FindByGenesisBlock(blockNum uint64, blockID string) *registry.Network {
+	return r.FindByFirstStreamableBlock(blockNum, blockID)
+}
+
+// FindByFirstStreamableBlock returns the *registry.Network whose first streamable block matches the given blockNum and blockID (hash).
+func (r NetworkRegistry) FindByFirstStreamableBlock(blockNum uint64, blockID string) *registry.Network {
 	for _, network := range r {
-		if network.Genesis != nil &&
-			uint64(network.Genesis.Height) == blockNum &&
-			nox(network.Genesis.Hash) == nox(blockID) {
+		if network.Firehose != nil && network.Firehose.FirstStreamableBlock != nil &&
+			uint64(network.Firehose.FirstStreamableBlock.Height) == blockNum &&
+			nox(network.Firehose.FirstStreamableBlock.ID) == nox(blockID) {
 			return network
 		}
 	}
