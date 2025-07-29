@@ -7,8 +7,12 @@
   - [GetFirehoseRegistry()](#getfirehoseregistry)
 - [Network Lookup Functions](#network-lookup-functions)
   - [Find(key string)](#findkey-string)
-  - [FindByGenesisBlock(blockNum uint64, blockID string)](#findbygenesisblockblocknum-uint64-blockid-string)
+  - [FindByFirstStreamableBlock(blockNum uint64, blockID string)](#findbyfirststreamableblockblocknum-uint64-blockid-string)
+  - [FindByGenesisBlock(blockNum uint64, blockID string)](#findbygenesisblockblocknum-uint64-blockid-string) *(Deprecated)*
   - [FindBySubstreamsEndpoint(endpoint string)](#findbysubstreamsendpointendpoint-string)
+- [Endpoint Helper Functions](#endpoint-helper-functions)
+  - [GetSubstreamsEndpoint(key string)](#getsubstreamsendpointkey-string)
+  - [GetFirehoseEndpoint(key string)](#getfirehoseendpointkey-string)
 - [Configuration Helpers](#configuration-helpers)
   - [GetBytesEncoding(network *registry.Network)](#getbytesencodingnetwork-registrynetwork)
   - [ScheduleUpdateLatestRegistry(ctx context.Context, interval time.Duration, logger *zap.Logger)](#scheduleupdatelatestregistryctx-contextcontext-interval-timeduration-logger-zaplogger)
@@ -66,11 +70,27 @@ network = networks.Find("eth")
 network = networks.Find("Ethereum Mainnet")
 ```
 
-### FindByGenesisBlock(blockNum uint64, blockID string)
+### FindByFirstStreamableBlock(blockNum uint64, blockID string)
 
-Finds a network by matching its genesis block number and hash.
+Finds a network by matching its first streamable block number and hash. This is the recommended method for finding networks by block information.
 
 ```go
+network := networks.FindByFirstStreamableBlock(0, "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
+if network != nil {
+    fmt.Printf("Found network: %s\n", network.FullName)
+}
+```
+
+This function is useful when you have block information from Firehose and need to identify which network it belongs to.
+
+### FindByGenesisBlock(blockNum uint64, blockID string) *(Deprecated)*
+
+**⚠️ Deprecated:** Use `FindByFirstStreamableBlock` instead, as GenesisBlock has been renamed to FirstStreamableBlock in the network registry.
+
+Finds a network by matching its genesis block number and hash. This function is maintained for backward compatibility but internally calls `FindByFirstStreamableBlock`.
+
+```go
+// Deprecated - use FindByFirstStreamableBlock instead
 network := networks.FindByGenesisBlock(0, "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
 if network != nil {
     fmt.Printf("Found network: %s\n", network.FullName)
@@ -87,6 +107,42 @@ if network != nil {
     fmt.Printf("Network: %s\n", network.FullName)
 }
 ```
+
+## Endpoint Helper Functions
+
+### GetSubstreamsEndpoint(key string)
+
+Returns the preferred Substreams endpoint for a given network key, prioritizing streamingfast.io endpoints when available.
+
+```go
+endpoint := networks.GetSubstreamsEndpoint("ethereum-mainnet")
+if endpoint != "" {
+    fmt.Printf("Substreams endpoint: %s\n", endpoint)
+    // Use endpoint to connect to Substreams
+}
+```
+
+This function is useful when you need to:
+- Get a ready-to-use Substreams endpoint for a specific network
+- Automatically prefer StreamingFast endpoints when multiple options are available
+- Handle cases where a network might not have Substreams support (returns empty string)
+
+### GetFirehoseEndpoint(key string)
+
+Returns the preferred Firehose endpoint for a given network key, prioritizing streamingfast.io endpoints when available.
+
+```go
+endpoint := networks.GetFirehoseEndpoint("ethereum-mainnet")
+if endpoint != "" {
+    fmt.Printf("Firehose endpoint: %s\n", endpoint)
+    // Use endpoint to connect to Firehose
+}
+```
+
+This function is useful when you need to:
+- Get a ready-to-use Firehose endpoint for a specific network
+- Automatically prefer StreamingFast endpoints when multiple options are available
+- Handle cases where a network might not have Firehose support (returns empty string)
 
 ## Configuration Helpers
 

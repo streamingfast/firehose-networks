@@ -43,6 +43,12 @@ firehoseNetworks := networks.GetFirehoseRegistry()
 for id, network := range firehoseNetworks {
     fmt.Printf("%s: %v\n", id, network.Services.Firehose)
 }
+
+// Get preferred endpoints for a specific network
+substreamsEndpoint := networks.GetSubstreamsEndpoint("ethereum-mainnet")
+firehoseEndpoint := networks.GetFirehoseEndpoint("ethereum-mainnet")
+fmt.Printf("Substreams: %s\n", substreamsEndpoint)
+fmt.Printf("Firehose: %s\n", firehoseEndpoint)
 ```
 
 ## API Reference
@@ -54,8 +60,12 @@ For detailed documentation of all helper functions, see [REFERENCE.md](./REFEREN
   - [GetFirehoseRegistry()](./REFERENCE.md#getfirehoseregistry)
 - **Network Lookup Functions**
   - [Find(key string)](./REFERENCE.md#findkey-string)
-  - [FindByGenesisBlock(blockNum uint64, blockID string)](./REFERENCE.md#findbygenesisblockblocknum-uint64-blockid-string)
+  - [FindByFirstStreamableBlock(blockNum uint64, blockID string)](./REFERENCE.md#findbyfirststreamableblockblocknum-uint64-blockid-string)
+  - [FindByGenesisBlock(blockNum uint64, blockID string)](./REFERENCE.md#findbygenesisblockblocknum-uint64-blockid-string) *(Deprecated)*
   - [FindBySubstreamsEndpoint(endpoint string)](./REFERENCE.md#findbysubstreamsendpointendpoint-string)
+- **Endpoint Helper Functions**
+  - [GetSubstreamsEndpoint(key string)](./REFERENCE.md#getsubstreamsendpointkey-string)
+  - [GetFirehoseEndpoint(key string)](./REFERENCE.md#getfirehoseendpointkey-string)
 - **Configuration Helpers**
   - [GetBytesEncoding(network *registry.Network)](./REFERENCE.md#getbytesencodingnetwork-registrynetwork)
   - [ScheduleUpdateLatestRegistry(ctx context.Context, interval time.Duration, logger *zap.Logger)](./REFERENCE.md#scheduleupdatelatestregistryctx-contextcontext-interval-timeduration-logger-zaplogger)
@@ -64,7 +74,7 @@ For detailed documentation of all helper functions, see [REFERENCE.md](./REFEREN
 
 The library supports adding custom network configurations that aren't available in the upstream registry. This is useful for development networks, private chains, or networks not yet in the official registry.
 
-Custom networks are defined in [`overrides.go`](./overrides.go) and automatically merged with the official registry data. See the `TRONMainnet` example in that file for reference on how to structure a custom network definition.
+Custom networks are defined in [`overrides.go`](./overrides.go) and automatically merged with the official registry data. See the `ACMEDummyBlockchain` example in that file for reference on how to structure a custom network definition.
 
 To add your own custom network, follow the same pattern used for the existing overrides.
 
