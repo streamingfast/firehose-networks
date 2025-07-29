@@ -34,6 +34,29 @@
 //	// By full name
 //	network = networks.Find("Ethereum Mainnet")
 //
+// Get preferred endpoints for connecting to services:
+//
+//	// Get the best Substreams endpoint for a network
+//	substreamsEndpoint := networks.GetSubstreamsEndpoint("ethereum-mainnet")
+//	if substreamsEndpoint != "" {
+//	    // Connect to Substreams using this endpoint
+//	}
+//
+//	// Get the best Firehose endpoint for a network
+//	firehoseEndpoint := networks.GetFirehoseEndpoint("ethereum-mainnet")
+//	if firehoseEndpoint != "" {
+//	    // Connect to Firehose using this endpoint
+//	}
+//
+// Find networks by block information:
+//
+//	// Find by first streamable block (recommended)
+//	registry := networks.GetSubstreamsRegistry()
+//	network = registry.FindByFirstStreamableBlock(0, "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
+//
+//	// Find by Substreams endpoint
+//	network = registry.FindBySubstreamsEndpoint("https://mainnet.eth.streamingfast.io:443")
+//
 // # Fallback Mechanism
 //
 // The package automatically handles network registry availability. If the remote
