@@ -49,17 +49,27 @@ substreamsEndpoint := networks.GetSubstreamsEndpoint("ethereum-mainnet")
 firehoseEndpoint := networks.GetFirehoseEndpoint("ethereum-mainnet")
 fmt.Printf("Substreams: %s\n", substreamsEndpoint)
 fmt.Printf("Firehose: %s\n", firehoseEndpoint)
+
+// Search networks using regex patterns
+pattern := regexp.MustCompile("(?i)ethereum")
+results := networks.Search(pattern)
+for _, network := range results {
+    fmt.Printf("Found: %s (%s)\n", network.FullName, network.ID)
+}
 ```
 
 ## API Reference
 
 For detailed documentation of all helper functions, see [REFERENCE.md](./REFERENCE.md).
 
-- **Registry Filtering Functions**
+- **Registry Access Functions**
+  - [GetRegistry()](./REFERENCE.md#getregistry)
   - [GetSubstreamsRegistry()](./REFERENCE.md#getsubstreamsregistry)
   - [GetFirehoseRegistry()](./REFERENCE.md#getfirehoseregistry)
 - **Network Lookup Functions**
   - [Find(key string)](./REFERENCE.md#findkey-string)
+  - [FindAll(key string)](./REFERENCE.md#findallkey-string)
+  - [Search(re *regexp.Regexp)](./REFERENCE.md#searchre-regexpregexp)
   - [FindByFirstStreamableBlock(blockNum uint64, blockID string)](./REFERENCE.md#findbyfirststreamableblockblocknum-uint64-blockid-string)
   - [FindByGenesisBlock(blockNum uint64, blockID string)](./REFERENCE.md#findbygenesisblockblocknum-uint64-blockid-string) *(Deprecated)*
   - [FindBySubstreamsEndpoint(endpoint string)](./REFERENCE.md#findbysubstreamsendpointendpoint-string)

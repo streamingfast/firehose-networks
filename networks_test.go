@@ -1,6 +1,7 @@
 package networks
 
 import (
+	"regexp"
 	"testing"
 
 	registry "github.com/pinax-network/graph-networks-libs/packages/golang/lib"
@@ -41,6 +42,115 @@ func TestNetworkRegistry_Find(t *testing.T) {
 	})
 	t.Run("not found", func(t *testing.T) {
 		assert.Nil(t, r.Find("notfound"))
+	})
+}
+
+func TestNetworkRegistry_FindAll(t *testing.T) {
+	net1 := &registry.Network{ID: "mainnet", ShortName: "ETH", FullName: "Ethereum Mainnet", Aliases: []string{"eth", "ethereum"}}
+	net2 := &registry.Network{ID: "arbitrum", ShortName: "ARB", FullName: "Arbitrum One", Aliases: []string{"arb", "arbitrum-one"}}
+	net3 := &registry.Network{ID: "custom", ShortName: "ETH", FullName: "My Custom Chain", Aliases: []string{"mychain"}}
+
+	r := NetworkRegistry{
+		"mainnet":  net1,
+		"arbitrum": net2,
+		"custom":   net3,
+	}
+
+	t.Run("find all by id", func(t *testing.T) {
+		results := r.FindAll("mainnet")
+		assert.Len(t, results, 1)
+		assert.Equal(t, net1, results[0])
+	})
+	t.Run("find all by alias", func(t *testing.T) {
+		results := r.FindAll("eth")
+		assert.Len(t, results, 1)
+		assert.Equal(t, net1, results[0])
+
+		results = r.FindAll("arbitrum-one")
+		assert.Len(t, results, 1)
+		assert.Equal(t, net2, results[0])
+	})
+	t.Run("find all by FullName", func(t *testing.T) {
+		results := r.FindAll("Ethereum Mainnet")
+		assert.Len(t, results, 1)
+		assert.Equal(t, net1, results[0])
+	})
+	t.Run("find all by ShortName with multiple matches", func(t *testing.T) {
+		results := r.FindAll("ETH")
+		assert.Len(t, results, 2)
+		assert.Contains(t, results, net1)
+		assert.Contains(t, results, net3)
+	})
+	t.Run("not found", func(t *testing.T) {
+		results := r.FindAll("notfound")
+		assert.Empty(t, results)
+	})
+	t.Run("results are sorted by ID", func(t *testing.T) {
+		results := r.FindAll("ETH")
+		assert.Len(t, results, 2)
+		assert.Equal(t, "custom", results[0].ID)
+		assert.Equal(t, "mainnet", results[1].ID)
+	})
+}
+
+func TestNetworkRegistry_Search(t *testing.T) {
+	net1 := &registry.Network{ID: "mainnet", ShortName: "ETH", FullName: "Ethereum Mainnet", Aliases: []string{"eth", "ethereum"}}
+	net2 := &registry.Network{ID: "arbitrum", ShortName: "ARB", FullName: "Arbitrum One", Aliases: []string{"arb", "arbitrum-one"}}
+	net3 := &registry.Network{ID: "optimism", ShortName: "OPT", FullName: "Optimism Mainnet", Aliases: []string{"opt", "optimism-mainnet"}}
+	net4 := &registry.Network{ID: "polygon", ShortName: "POL", FullName: "Polygon Mainnet", Aliases: []string{"matic"}}
+
+	r := NetworkRegistry{
+		"mainnet":  net1,
+		"arbitrum": net2,
+		"optimism": net3,
+		"polygon":  net4,
+	}
+
+	t.Run("search by ID pattern", func(t *testing.T) {
+		re := regexp.MustCompile("^main")
+		results := r.Search(re)
+		assert.Len(t, results, 1)
+		assert.Equal(t, net1, results[0])
+	})
+	t.Run("search by ShortName pattern", func(t *testing.T) {
+		re := regexp.MustCompile("^AR")
+		results := r.Search(re)
+		assert.Len(t, results, 1)
+		assert.Equal(t, net2, results[0])
+	})
+	t.Run("search by FullName pattern", func(t *testing.T) {
+		re := regexp.MustCompile("Mainnet$")
+		results := r.Search(re)
+		assert.Len(t, results, 3)
+		assert.Contains(t, results, net1)
+		assert.Contains(t, results, net3)
+		assert.Contains(t, results, net4)
+	})
+	t.Run("search by alias pattern", func(t *testing.T) {
+		re := regexp.MustCompile("^arb")
+		results := r.Search(re)
+		assert.Len(t, results, 1)
+		assert.Equal(t, net2, results[0])
+	})
+	t.Run("search with pattern matching multiple fields", func(t *testing.T) {
+		re := regexp.MustCompile("(?i)eth")
+		results := r.Search(re)
+		assert.Len(t, results, 1)
+		assert.Equal(t, net1, results[0])
+	})
+	t.Run("no matches", func(t *testing.T) {
+		re := regexp.MustCompile("^notfound")
+		results := r.Search(re)
+		assert.Empty(t, results)
+	})
+	t.Run("results are sorted by ID", func(t *testing.T) {
+		re := regexp.MustCompile(".*")
+		results := r.Search(re)
+		assert.Len(t, results, 4)
+		assert.Equal(t, "arbitrum", results[0].ID)
+		assert.Equal(t, "mainnet", results[1].ID)
+		assert.Equal(t, "optimism", results[2].ID)
+		assert.Equal(t, "polygon", results[3].ID)
 	})
 }
 
@@ -90,7 +200,7 @@ func TestGetFirehoseRegistry(t *testing.T) {
 }
 
 func TestNetworkRegistry_FindByGenesisBlock(t *testing.T) {
-	networks := getRegistryNetworks()
+	networks := getRegistryNetworksFull()
 	const moonbeamID = "moonbeam"
 	const moonbeamGenesisHash = "0x7e6b3bbed86828a558271c9c9f62354b1d8b5aa15ff85fd6f1e7cbe9af9dde7e"
 	const moonbeamGenesisHeight = 0
@@ -105,7 +215,7 @@ func TestNetworkRegistry_FindByGenesisBlock(t *testing.T) {
 }
 
 func TestGetBytesEncoding(t *testing.T) {
-	networks := getRegistryNetworks()
+	networks := getRegistryNetworksFull()
 
 	t.Run("returns correct encoding for mainnet", func(t *testing.T) {
 		net := networks.Find("mainnet")
@@ -193,12 +303,12 @@ func TestGetSubstreamsEndpoint(t *testing.T) {
 				},
 			},
 		}
-		
+
 		// Temporarily add to registry
-		reg := getRegistryNetworks()
+		reg := getRegistryNetworksFull()
 		reg["test-no-sf"] = net
 		defer delete(reg, "test-no-sf")
-		
+
 		endpoint := GetSubstreamsEndpoint("test-no-sf")
 		assert.Equal(t, "test.pinax.network:443", endpoint)
 	})
@@ -216,12 +326,12 @@ func TestGetSubstreamsEndpoint(t *testing.T) {
 				Substreams: []string{},
 			},
 		}
-		
+
 		// Temporarily add to registry
-		reg := getRegistryNetworks()
+		reg := getRegistryNetworksFull()
 		reg["test-no-substreams"] = net
 		defer delete(reg, "test-no-substreams")
-		
+
 		endpoint := GetSubstreamsEndpoint("test-no-substreams")
 		assert.Empty(t, endpoint)
 	})
@@ -246,12 +356,12 @@ func TestGetFirehoseEndpoint(t *testing.T) {
 				},
 			},
 		}
-		
+
 		// Temporarily add to registry
-		reg := getRegistryNetworks()
+		reg := getRegistryNetworksFull()
 		reg["test-no-sf"] = net
 		defer delete(reg, "test-no-sf")
-		
+
 		endpoint := GetFirehoseEndpoint("test-no-sf")
 		assert.Equal(t, "test.pinax.network:443", endpoint)
 	})
@@ -269,12 +379,12 @@ func TestGetFirehoseEndpoint(t *testing.T) {
 				Firehose: []string{},
 			},
 		}
-		
+
 		// Temporarily add to registry
-		reg := getRegistryNetworks()
+		reg := getRegistryNetworksFull()
 		reg["test-no-firehose"] = net
 		defer delete(reg, "test-no-firehose")
-		
+
 		endpoint := GetFirehoseEndpoint("test-no-firehose")
 		assert.Empty(t, endpoint)
 	})

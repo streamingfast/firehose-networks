@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.2
+
+* Updated fallback registry to latest version 0.7.34.
+
+* Added `GetRegistry` function to access the full network registry without filtering.
+
+* Added `FindAll` method to `NetworkRegistry` for finding multiple networks matching a key (also available as global function).
+
+* Added `Search` method to `NetworkRegistry` for finding networks using regular expression patterns (also available as global function).
+
+* Improved performance: `GetSubstreamsRegistry` and `GetFirehoseRegistry` now return cached filtered registries instead of filtering on each call.
+
 ## v0.2.1
 
 * Added internal dummy blockchain override.

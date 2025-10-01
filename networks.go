@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -15,19 +16,22 @@ import (
 	"go.uber.org/zap"
 )
 
-//go:embed fallback_TheGraphNetworkRegistry_0.7.16.json
+//go:embed fallback_TheGraphNetworkRegistry_0.7.34.json
 var embeddedRegistryJSON []byte
 
-// NetworkRegistry is a thin wrapper around a [map[string]*registry.Network] to add some helper methods.
+// NetworkRegistry is a thin wrapper around a [map[string]*registry.Network] to add some helper methods
+// where we map from [registry.Network.ID] to [*registry.Network].
 type NetworkRegistry map[string]*registry.Network
 
 var (
-	registryNetworks     NetworkRegistry
-	registryNetworksOnce sync.Once
+	registryNetworksFull       NetworkRegistry
+	registryNetworksFirehose   NetworkRegistry
+	registryNetworksSubstreams NetworkRegistry
+	registryNetworksOnce       sync.Once
 )
 
 // getRegistryNetworks fetches and caches all networks from the registry (no filtering).
-func getRegistryNetworks() NetworkRegistry {
+func getRegistryNetworks() (full NetworkRegistry, firehose NetworkRegistry, substreams NetworkRegistry) {
 	registryNetworksOnce.Do(func() {
 		reg, err := loadRegistry(registry.FromLatestVersion)
 		if err != nil {
@@ -43,10 +47,15 @@ func getRegistryNetworks() NetworkRegistry {
 			}
 		}
 
-		registryNetworks = reg
+		setRegistries(reg)
 	})
 
-	return registryNetworks
+	return registryNetworksFull, registryNetworksFirehose, registryNetworksSubstreams
+}
+
+func getRegistryNetworksFull() NetworkRegistry {
+	full, _, _ := getRegistryNetworks()
+	return full
 }
 
 func loadRegistry(loader func() (*registry.NetworksRegistry, error)) (NetworkRegistry, error) {
@@ -71,24 +80,36 @@ func fromEmbeddedJSON() (*registry.NetworksRegistry, error) {
 	return registry.FromJSON(embeddedRegistryJSON)
 }
 
+// GetRegistry returns the full network registry without any filtering.
+func GetRegistry() NetworkRegistry {
+	return getRegistryNetworksFull()
+}
+
 // GetSubstreamsRegistry returns only networks with Substreams endpoints.
 func GetSubstreamsRegistry() NetworkRegistry {
-	all := getRegistryNetworks()
-	filtered := make(NetworkRegistry)
-	for id, net := range all {
-		if len(net.Services.Substreams) > 0 {
-			filtered[id] = net
-		}
-	}
-	return filtered
+	_, _, registryNetworksSubstreams := getRegistryNetworks()
+	return registryNetworksSubstreams
 }
 
 // GetFirehoseRegistry returns only networks with Firehose endpoints.
 func GetFirehoseRegistry() NetworkRegistry {
-	all := getRegistryNetworks()
+	_, registryNetworksFirehose, _ := getRegistryNetworks()
+	return registryNetworksFirehose
+}
+
+func isSubstreamsNetwork(net *registry.Network) bool {
+	return net != nil && len(net.Services.Substreams) > 0
+}
+
+func isFirehoseNetwork(net *registry.Network) bool {
+	return net != nil && len(net.Services.Firehose) > 0
+}
+
+// Filter returns a new NetworkRegistry containing only networks for which shouldInclude returns true.
+func (r NetworkRegistry) Filter(shouldInclude func(*registry.Network) bool) NetworkRegistry {
 	filtered := make(NetworkRegistry)
-	for id, net := range all {
-		if len(net.Services.Firehose) > 0 {
+	for id, net := range r {
+		if shouldInclude(net) {
 			filtered[id] = net
 		}
 	}
@@ -110,6 +131,15 @@ func (r NetworkRegistry) addCustomNetwork(network *registry.Network, forced bool
 	r[network.ID] = network
 }
 
+// Has returns true if network exists, either by ID or by alias (sorted by network ID), FullName, and ShortName.
+func (r NetworkRegistry) Has(key string) bool {
+	if _, ok := r[key]; ok {
+		return true
+	}
+
+	return r.Find(key) != nil
+}
+
 // Find returns the network by ID or, if not found, by alias (sorted by network ID), FullName, and ShortName.
 func (r NetworkRegistry) Find(key string) *registry.Network {
 	if n, ok := r[key]; ok {
@@ -124,6 +154,47 @@ func (r NetworkRegistry) Find(key string) *registry.Network {
 		}
 	}
 	return nil
+}
+
+// FindAll returns all networks matching the given key by alias, FullName, ShortName, or ID.
+func (r NetworkRegistry) FindAll(key string) []*registry.Network {
+	ids := slices.Collect(maps.Keys(r))
+	slices.Sort(ids)
+
+	var results []*registry.Network
+	for _, id := range ids {
+		net := r[id]
+		if slices.Contains(net.Aliases, key) || net.FullName == key || net.ShortName == key || net.ID == key {
+			results = append(results, net)
+		}
+	}
+
+	return results
+}
+
+// Search returns all networks matching the given regular expression against aliases, FullName, ShortName, or ID.
+func (r NetworkRegistry) Search(re *regexp.Regexp) []*registry.Network {
+	ids := slices.Collect(maps.Keys(r))
+	slices.Sort(ids)
+
+	var results []*registry.Network
+	for _, id := range ids {
+		net := r[id]
+		// Check if pattern matches ID, FullName, ShortName, or any alias
+		if re.MatchString(net.ID) || re.MatchString(net.FullName) || re.MatchString(net.ShortName) {
+			results = append(results, net)
+			continue
+		}
+		// Check aliases
+		for _, alias := range net.Aliases {
+			if re.MatchString(alias) {
+				results = append(results, net)
+				break
+			}
+		}
+	}
+
+	return results
 }
 
 // FindByGenesisBlock returns the *registry.Network whose genesis block matches the given blockNum and blockID (hash).
@@ -145,9 +216,28 @@ func (r NetworkRegistry) FindByFirstStreamableBlock(blockNum uint64, blockID str
 	return nil
 }
 
-// Find is a shortcut for getRegistryNetworks().Find(key).
+// Has is a shortcut for [NetworkRegistry.Has] which is
+// equivalent to `GetRegistry().Has(key)`.
+func Has(key string) bool {
+	return getRegistryNetworksFull().Has(key)
+}
+
+// Find is a shortcut for [NetworkRegistry.Find] which is
+// equivalent to `GetRegistry().Find(key)`.
 func Find(key string) *registry.Network {
-	return getRegistryNetworks().Find(key)
+	return getRegistryNetworksFull().Find(key)
+}
+
+// FindAll is a shortcut for [NetworkRegistry.FindAll] which
+// is equivalent to `GetRegistry().FindAll(key)`.
+func FindAll(key string) []*registry.Network {
+	return getRegistryNetworksFull().FindAll(key)
+}
+
+// Search is a shortcut for [NetworkRegistry.Search] which
+// is equivalent to `GetRegistry().Search(re)`.
+func Search(re *regexp.Regexp) []*registry.Network {
+	return getRegistryNetworksFull().Search(re)
 }
 
 // GetSubstreamsEndpoint returns the preferred Substreams endpoint for a given network key,
@@ -220,10 +310,16 @@ func backgroundUpdateLatestRegistry(ctx context.Context) {
 		return
 	}
 
+	setRegistries(registry)
+}
+
+func setRegistries(source NetworkRegistry) {
 	// We could have used a atomic pointer here, but it's not a big deal,
 	// the on the fly update is not expected to be frequent and shouldn't cause
 	// any real issues as they are separated instances.
-	registryNetworks = registry
+	registryNetworksFull = source
+	registryNetworksFirehose = source.Filter(isFirehoseNetwork)
+	registryNetworksSubstreams = source.Filter(isSubstreamsNetwork)
 }
 
 // ScheduleUpdateLatestRegistry schedules a background update goroutine of the latest registry at the
@@ -254,7 +350,7 @@ func ScheduleUpdateLatestRegistry(ctx context.Context, interval time.Duration, l
 					continue
 				}
 
-				registryNetworks = registry
+				registryNetworksFull = registry
 			}
 		}
 	}()
