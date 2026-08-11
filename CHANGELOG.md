@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+* Added StreamingFast Firehose and Substreams endpoints (`hoodi.eth.streamingfast.io:443`) to the `hoodi` network, which the upstream registry lists with Pinax endpoints only.
+
+* Added service overrides, a local mechanism to add Firehose and Substreams endpoints to networks that already exist in the upstream registry. Overridden endpoints take precedence over the registry ones and duplicates are dropped.
+
 ## v0.2.2
 
 * Updated fallback registry to latest version 0.7.34.

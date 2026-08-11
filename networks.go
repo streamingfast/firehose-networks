@@ -73,6 +73,10 @@ func loadRegistry(loader func() (*registry.NetworksRegistry, error)) (NetworkReg
 		registry.addCustomNetwork(net, false)
 	}
 
+	for _, override := range serviceOverrides {
+		registry.addServiceEndpoints(override)
+	}
+
 	return registry, nil
 }
 
@@ -129,6 +133,22 @@ func (r NetworkRegistry) addCustomNetwork(network *registry.Network, forced bool
 	}
 
 	r[network.ID] = network
+}
+
+// addServiceEndpoints merges the endpoints of a [serviceOverride] into the network it targets.
+// If the targeted network is not part of the registry, the override is ignored.
+func (r NetworkRegistry) addServiceEndpoints(override *serviceOverride) {
+	if override == nil || override.NetworkID == "" {
+		return // Ignore invalid input
+	}
+
+	network, found := r[override.NetworkID]
+	if !found {
+		return
+	}
+
+	network.Services.Firehose = mergeEndpoints(override.Firehose, network.Services.Firehose)
+	network.Services.Substreams = mergeEndpoints(override.Substreams, network.Services.Substreams)
 }
 
 // Has returns true if network exists, either by ID or by alias (sorted by network ID), FullName, and ShortName.

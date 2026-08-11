@@ -6,6 +6,7 @@ import (
 
 	registry "github.com/pinax-network/graph-networks-libs/packages/golang/lib"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNetworkRegistry_Find(t *testing.T) {
@@ -388,4 +389,90 @@ func TestGetFirehoseEndpoint(t *testing.T) {
 		endpoint := GetFirehoseEndpoint("test-no-firehose")
 		assert.Empty(t, endpoint)
 	})
+}
+
+func TestNetworkRegistry_addServiceEndpoints(t *testing.T) {
+	newRegistry := func() NetworkRegistry {
+		return NetworkRegistry{
+			"hoodi": &registry.Network{
+				ID: "hoodi",
+				Services: registry.Services{
+					Firehose:   []string{"hoodi.firehose.pinax.network:443"},
+					Substreams: []string{"hoodi.substreams.pinax.network:443"},
+				},
+			},
+		}
+	}
+
+	t.Run("prepends endpoints to an existing network", func(t *testing.T) {
+		r := newRegistry()
+		r.addServiceEndpoints(&serviceOverride{
+			NetworkID:  "hoodi",
+			Firehose:   []string{"hoodi.eth.streamingfast.io:443"},
+			Substreams: []string{"hoodi.eth.streamingfast.io:443"},
+		})
+
+		assert.Equal(t, []string{"hoodi.eth.streamingfast.io:443", "hoodi.firehose.pinax.network:443"}, r["hoodi"].Services.Firehose)
+		assert.Equal(t, []string{"hoodi.eth.streamingfast.io:443", "hoodi.substreams.pinax.network:443"}, r["hoodi"].Services.Substreams)
+	})
+
+	t.Run("does not duplicate endpoints already in the registry", func(t *testing.T) {
+		r := newRegistry()
+		override := &serviceOverride{
+			NetworkID:  "hoodi",
+			Firehose:   []string{"hoodi.firehose.pinax.network:443"},
+			Substreams: []string{"hoodi.substreams.pinax.network:443"},
+		}
+
+		r.addServiceEndpoints(override)
+		r.addServiceEndpoints(override)
+
+		assert.Equal(t, []string{"hoodi.firehose.pinax.network:443"}, r["hoodi"].Services.Firehose)
+		assert.Equal(t, []string{"hoodi.substreams.pinax.network:443"}, r["hoodi"].Services.Substreams)
+	})
+
+	t.Run("leaves untouched services the override does not define", func(t *testing.T) {
+		r := newRegistry()
+		r.addServiceEndpoints(&serviceOverride{
+			NetworkID: "hoodi",
+			Firehose:  []string{"hoodi.eth.streamingfast.io:443"},
+		})
+
+		assert.Equal(t, []string{"hoodi.eth.streamingfast.io:443", "hoodi.firehose.pinax.network:443"}, r["hoodi"].Services.Firehose)
+		assert.Equal(t, []string{"hoodi.substreams.pinax.network:443"}, r["hoodi"].Services.Substreams)
+	})
+
+	t.Run("ignores unknown network and invalid input", func(t *testing.T) {
+		r := newRegistry()
+		r.addServiceEndpoints(&serviceOverride{NetworkID: "unknown-network", Firehose: []string{"unknown.streamingfast.io:443"}})
+		r.addServiceEndpoints(&serviceOverride{Firehose: []string{"unknown.streamingfast.io:443"}})
+		r.addServiceEndpoints(nil)
+
+		assert.Equal(t, newRegistry(), r)
+	})
+}
+
+func TestServiceOverrides_Hoodi(t *testing.T) {
+	// Loaded from the embedded JSON so the assertions are not affected by the live registry
+	reg, err := loadRegistry(fromEmbeddedJSON)
+	require.NoError(t, err)
+
+	net := reg.Find("hoodi")
+	require.NotNil(t, net, "Network %q should be present in the registry", "hoodi")
+
+	assert.Equal(t, []string{"hoodi.eth.streamingfast.io:443", "hoodi.firehose.pinax.network:443"}, net.Services.Firehose)
+	assert.Equal(t, []string{"hoodi.eth.streamingfast.io:443", "hoodi.substreams.pinax.network:443"}, net.Services.Substreams)
+}
+
+func TestMergeEndpoints(t *testing.T) {
+	preferred := []string{"a", "b"}
+	existing := []string{"b", "c"}
+
+	assert.Equal(t, []string{"a", "b", "c"}, mergeEndpoints(preferred, existing))
+	assert.Equal(t, []string{"a", "b"}, preferred, "Input slice must not be mutated")
+	assert.Equal(t, []string{"b", "c"}, existing, "Input slice must not be mutated")
+
+	assert.Equal(t, []string{"b", "c"}, mergeEndpoints(nil, existing))
+	assert.Equal(t, []string{"a", "b"}, mergeEndpoints(preferred, nil))
+	assert.Nil(t, mergeEndpoints(nil, nil))
 }

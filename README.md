@@ -88,6 +88,12 @@ Custom networks are defined in [`overrides.go`](./overrides.go) and automaticall
 
 To add your own custom network, follow the same pattern used for the existing overrides.
 
+## Service Overrides
+
+Networks that already exist in the upstream registry can be augmented with extra Firehose and Substreams endpoints, which is how StreamingFast endpoints are exposed for networks the registry doesn't list them for yet (`hoodi` for example).
+
+Service overrides are defined in [`overrides.go`](./overrides.go) through the `serviceOverrides` list. The endpoints they declare are merged in front of the ones coming from the registry and duplicates are dropped, so an override becomes a no-op once the upstream registry catches up. An override targeting an unknown network is ignored.
+
 ## Fallback Registry
 
 When the remote registry is unavailable, the library automatically falls back to a local copy stored in `fallback_TheGraphNetworkRegistry_*.json`. This ensures your applications continue to work even in offline environments or when the upstream registry is temporarily unavailable.
