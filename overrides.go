@@ -6,6 +6,37 @@ var (
 	networkOverrides = []*registry.Network{
 		ACMEDummyBlockchain,
 	}
+
+	serviceOverrides = []*serviceOverride{
+		hoodiStreamingFast,
+	}
+)
+
+// serviceOverride adds service endpoints to a network that already exists in the official
+// registry, which [networkOverrides] cannot do since it only adds networks that are missing.
+//
+// It is meant to declare StreamingFast endpoints for networks the registry doesn't list them
+// for yet. Endpoints are merged in front of the ones coming from the registry and duplicates
+// are dropped, so an override turns into a no-op once the registry catches up.
+type serviceOverride struct {
+	// NetworkID is the [registry.Network.ID] of the network to augment, an unknown ID is ignored.
+	NetworkID string
+
+	// Firehose endpoints to add to [registry.Services.Firehose].
+	Firehose []string
+
+	// Substreams endpoints to add to [registry.Services.Substreams].
+	Substreams []string
+}
+
+var (
+	// StreamingFast endpoints for the Ethereum Hoodi testnet, the registry only knows about
+	// the Pinax ones for now.
+	hoodiStreamingFast = &serviceOverride{
+		NetworkID:  "hoodi",
+		Firehose:   []string{"hoodi.eth.streamingfast.io:443"},
+		Substreams: []string{"hoodi.eth.streamingfast.io:443"},
+	}
 )
 
 var (

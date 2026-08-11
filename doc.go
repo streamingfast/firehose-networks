@@ -67,4 +67,9 @@
 //
 // The package supports custom network overrides for development and testing purposes.
 // These are automatically merged with the official registry data.
+//
+// Networks already known to the official registry can also be augmented with extra Firehose
+// and Substreams endpoints, which is how StreamingFast endpoints are exposed for networks the
+// registry doesn't list them for yet. The overridden endpoints take precedence over the ones
+// coming from the registry and duplicates are dropped.
 package networks
