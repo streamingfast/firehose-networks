@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-//go:embed fallback_TheGraphNetworkRegistry_0.7.34.json
+//go:embed fallback_TheGraphNetworkRegistry_0.8.2.json
 var embeddedRegistryJSON []byte
 
 // NetworkRegistry is a thin wrapper around a [map[string]*registry.Network] to add some helper methods

@@ -90,7 +90,7 @@ To add your own custom network, follow the same pattern used for the existing ov
 
 ## Service Overrides
 
-Networks that already exist in the upstream registry can be augmented with extra Firehose and Substreams endpoints, which is how StreamingFast endpoints are exposed for networks the registry doesn't list them for yet (`hoodi` for example).
+Networks that already exist in the upstream registry can be augmented with extra Firehose and Substreams endpoints, which is how StreamingFast endpoints are exposed for networks the registry doesn't list them for yet.
 
 Service overrides are defined in [`overrides.go`](./overrides.go) through the `serviceOverrides` list. The endpoints they declare are merged in front of the ones coming from the registry and duplicates are dropped, so an override becomes a no-op once the upstream registry catches up. An override targeting an unknown network is ignored.
 

@@ -7,9 +7,7 @@ var (
 		ACMEDummyBlockchain,
 	}
 
-	serviceOverrides = []*serviceOverride{
-		hoodiStreamingFast,
-	}
+	serviceOverrides []*serviceOverride
 )
 
 // serviceOverride adds service endpoints to a network that already exists in the official
@@ -28,16 +26,6 @@ type serviceOverride struct {
 	// Substreams endpoints to add to [registry.Services.Substreams].
 	Substreams []string
 }
-
-var (
-	// StreamingFast endpoints for the Ethereum Hoodi testnet, the registry only knows about
-	// the Pinax ones for now.
-	hoodiStreamingFast = &serviceOverride{
-		NetworkID:  "hoodi",
-		Firehose:   []string{"hoodi.eth.streamingfast.io:443"},
-		Substreams: []string{"hoodi.eth.streamingfast.io:443"},
-	}
-)
 
 var (
 	// Dummy blockchain we use for operator demonstration purposes.

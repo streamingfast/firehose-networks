@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+* Update Networks Registry library and fallback to 0.8.2. `services.subgraphs` is now structured `{kind, provider, description}` entries and `services.sps` is removed; see https://github.com/graphprotocol/networks-registry/releases/tag/v0.8.0.
+
+* Remove the Hoodi StreamingFast service override; registry 0.8 already lists those endpoints.
+
 ## v0.2.3
 
 ### Added
